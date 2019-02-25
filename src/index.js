@@ -76,27 +76,38 @@ class TwitchEmbedVideo extends PureComponent {
         }
     }
 
+    static getDerivedStateFromProps(props, state) {
+        // console.log('getDerivedStateFromProps', props)
+        // // You don't have to do this check first, but it can help prevent an unneeded render
+        console.log('getDerivedStateFromProps state changed', props)
+        if (props.channel && props.channel != state.channel) {
+            return { channel:  props.channel}
+        }
+        return state
+    }
+
+
     _addEventListeners(embed) {
-        embed.addEventListener(window.Twitch.Embed.AUTHENTICATE, function(user) {
+        embed.addEventListener(window.Twitch.Embed.AUTHENTICATE, function (user) {
             if (this.props.onUserLogin) {
                 this.props.onUserLogin(user);
             }
-        }.bind(this));        
+        }.bind(this));
 
-        embed.addEventListener(window.Twitch.Embed.VIDEO_PLAY, function(data) {
+        embed.addEventListener(window.Twitch.Embed.VIDEO_PLAY, function (data) {
             if (this.props.onVideoPlay) {
                 this.props.onVideoPlay(data);
             }
         }.bind(this));
 
-        /** Player ready for programmatic commands */     
-        embed.addEventListener(window.Twitch.Embed.VIDEO_READY, function() {
+        /** Player ready for programmatic commands */
+        embed.addEventListener(window.Twitch.Embed.VIDEO_READY, function () {
             var player = embed.getPlayer();
 
             if (this.props.onPlayerReady) {
                 this.props.onPlayerReady(player);
             }
-        }.bind(this));        
+        }.bind(this));
     }
 
     render() {
