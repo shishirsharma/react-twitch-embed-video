@@ -7,6 +7,7 @@ import PropTypes from 'prop-types';
 const EMBED_URL = 'https://embed.twitch.tv/embed/v1.js';
 
 class TwitchEmbedVideo extends PureComponent {
+    state = { channel: '' }
     static propTypes = {
         /** Custom class name to target */
         targetClass: PropTypes.string,
@@ -56,11 +57,12 @@ class TwitchEmbedVideo extends PureComponent {
         height: "480"
     };
 
-    componentDidMount() {
-        let embed;
+    setupEmbed() {
+        let twitch = {}
+        //let embed;
         if (window.Twitch && window.Twitch.Embed) {
-            embed = new window.Twitch.Embed(this.props.targetClass, { ...this.props });
-            this._addEventListeners(embed);
+            twitch.embed = new window.Twitch.Embed(this.props.targetClass, { ...this.props });
+            this._addEventListeners(twitch);
         } else {
             const script = document.createElement('script');
             script.setAttribute(
@@ -68,11 +70,26 @@ class TwitchEmbedVideo extends PureComponent {
                 EMBED_URL
             );
             script.addEventListener('load', () => {
-                embed = new window.Twitch.Embed(this.props.targetClass, { ...this.props });
-                this._addEventListeners(embed);
+                twitch.embed = new window.Twitch.Embed(this.props.targetClass, { ...this.props });
+                this._addEventListeners(twitch);        
             });
 
             document.body.appendChild(script);
+        }
+        this.setState({
+            channel: this.props.channel, 
+            twitch
+        });
+    };
+
+    componentDidMount() {
+        this.setupEmbed()
+    }
+
+    componentDidUpdate (prevProps, prevState) {
+        if (this.state.channel != prevState.channel) {
+            console.log('componentDidUpdate', prevState, this.state)
+            this.state.twitch && this.state.twitch.player && this.state.twitch.player.setChannel(this.state.channel);
         }
     }
 
@@ -81,13 +98,21 @@ class TwitchEmbedVideo extends PureComponent {
         // // You don't have to do this check first, but it can help prevent an unneeded render
         console.log('getDerivedStateFromProps state changed', props)
         if (props.channel && props.channel != state.channel) {
-            return { channel:  props.channel}
+            if ((!state.channel) || (state.channel && props.channel != state.channel)) {
+                console.log('getDerivedStateFromProps state changed', { channel: props.channel })
+                return { channel: props.channel }
+            }
         }
+
+        // if (props.channel) {
+        //     return { channel:  props.channel}
+        // }
         return state
     }
 
 
-    _addEventListeners(embed) {
+    _addEventListeners(twitch) {
+        let embed = twitch.embed;
         embed.addEventListener(window.Twitch.Embed.AUTHENTICATE, function (user) {
             if (this.props.onUserLogin) {
                 this.props.onUserLogin(user);
@@ -103,7 +128,7 @@ class TwitchEmbedVideo extends PureComponent {
         /** Player ready for programmatic commands */
         embed.addEventListener(window.Twitch.Embed.VIDEO_READY, function () {
             var player = embed.getPlayer();
-
+            twitch.player = player;
             if (this.props.onPlayerReady) {
                 this.props.onPlayerReady(player);
             }
